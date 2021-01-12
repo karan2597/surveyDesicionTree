@@ -1,82 +1,82 @@
 import React from 'react';
 import './App.css';
-import commonConstants from './util/Constants.js';
-
-const {  key, searchEngineId } = commonConstants;
-
+import data from './util/Constants.js';
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      searchResults: [],
+      selectedOption: null,
+      questionInfo: data.question1,
+      nextQuestionId: null,
+      answeredQuestion: 0,
     }
   }
 
-  fetchResults = async ({ value }) => {
-    const searchResults = [];
-    if(value.length > 2) {
-      const res = await fetch(`https://www.googleapis.com/customsearch/v1?key=${key}&cx=${searchEngineId}&q=${value}`);
-      const result = await res.json();
-      if(result.items) {
-        const items = result.items;
-        items.map((item) => {
-          const { title, link, snippet } = item;
-          let img = '';
-          console.log("KABoo: ", item);
-          if(item.pagemap.cse_image) {
-            img = item.pagemap.cse_image;
-          } else if(item.pagemap.cse_thumbnail) {
-            img = item.pagemap.cse_thumbnail;
-          }
-          searchResults.push({ title, link, cse_thumbnail: img[0].src, snippet });
-        });
-      }
-      this.setState({
-        searchResults,
-      });
-    }
+  handleChange = (e) => {
+    this.setState({
+      selectedOption: e.currentTarget.value,
+    })
   }
 
-  renderResultsComponent = ({ searchResults }) => {
-    if(searchResults.length > 0) {
-      return searchResults.map((res) => {
-        const { title, link, cse_image, snippet } = res;
-        return (
-        <div>
-          <div className = "outerWrapper">
-            <div className = 'leftSide'>
-              <img src={cse_image} className='imgStyle' alt='img' />
-            </div>
-            <div className = 'rightSide'>
-              <div> {link} </div>
-              <div> {title} </div>
-              <div> {snippet} </div>
-            </div>
-          </div>
-      </div>
-    )
+  handleSubmit = () => {
+    this.setState({
+      questionInfo: data[this.state.nextQuestionId || 0], // load selected question in array
+      answeredQuestion: this.state.answeredQuestion + 1,
     });
   }
-    return 'No Results Found';
+
+  computePercent = () => {
+    const currQuestionId = this.state.nextQuestionId || 'question1'; // default to question1Id
+    let maxPossibleQues = 1;
+    // This is a classic ex of finding maximum depth from a given node in a graph, till null (stopping condition is defined)
+
+
+
+    // for(let i=0;i<data[currQuestionId].optionsInfo.length;i++) {
+    //   let linkedQuestionId = data[currQuestionId].optionsInfo[i].linkedQuestion;
+    //   while(linkedQuestionId) {
+    //     maxPossibleQues = maxPossibleQues + 1;
+    //     linkedQuestionId = data[linkedQuestionId]
+    //   }
+    // }
+    // while(data[currQuestionId].optionsInfo) {
+    //   if(!data[currQuestionId].optionsInfo){
+    //     break;
+    //   }
+    //   maxPossibleQues = maxPossibleQues + 1;
+    //   currQuestionId = data[currQuestionId]
+    // }
   }
 
   render () {
-    const { state: { searchResults } }= this;
+    const { state: { questionInfo } } = this;
+    const { text, optionsInfo } = questionInfo;
+
   
     return (
       <div className="App">
-        <input
-          type = 'search'
-          onChange = {(e) => {
-            const { target: { value } } = e; 
-            this.fetchResults({ value });
-          }}
-        />
-        <div
-          className = 'resultsArea'
-        >
-          {this.renderResultsComponent({ searchResults })}
-        </div>
+        <>
+        <Progress percent={this.computePercent()} />
+          <div> {text}</div>
+          {optionsInfo.map((option) => {
+            const { id, text, linkedQuestion } = option;
+            <input
+              type="radio"
+              id={id}
+              name={text}
+              value={id}
+              onChange={() => {
+                this.handleChange();
+                this.setState({
+                  nextQuestionId: linkedQuestion,
+                })
+              }}
+              checked={this.state.selectedOption === id}
+            />
+          })}
+          <input type = "button" name="Submit" onClick={() => this.handleSubmit()} />
+        </>
+        )
       </div>
     );
   }
